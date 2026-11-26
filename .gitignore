@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Environment variables (Secret keys)
+.env
+
+# Local AI / Editor settings
+.workbuddy-ai/
+
+# User uploaded files & database backups
+uploads/
+backups/
+
+# Logs & OS files
+*.log
+.DS_Store

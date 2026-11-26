@@ -1,0 +1,159 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "LuxuryStay HMS API",
+    "version": "1.0.0",
+    "description": "Complete backend for the LuxuryStay Hotel Management System: users, rooms, bookings, billing, housekeeping, maintenance, feedback, services, reports, analytics, notifications, privacy and administration."
+  },
+  "servers": [{ "url": "http://localhost:5000" }],
+  "tags": [
+    { "name": "Auth" }, { "name": "Users" }, { "name": "Rooms" }, { "name": "Bookings" },
+    { "name": "Invoices" }, { "name": "Housekeeping" }, { "name": "Maintenance" },
+    { "name": "Feedback" }, { "name": "Services" }, { "name": "Reports" },
+    { "name": "Settings" }, { "name": "Notifications" }, { "name": "Audit" },
+    { "name": "Privacy" }, { "name": "Admin" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "contact": { "type": "string" },
+          "address": { "type": "string" },
+          "role": { "type": "string", "enum": ["admin", "manager", "receptionist", "housekeeping", "guest"] },
+          "permissions": { "type": "array", "items": { "type": "string" } },
+          "privacyConsent": { "type": "object" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": { "message": { "type": "string" } }
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/": { "get": { "tags": ["Admin"], "summary": "API root", "security": [], "responses": { "200": { "description": "Service info" } } } },
+    "/api/health": { "get": { "tags": ["Admin"], "summary": "Health check (public)", "security": [], "responses": { "200": { "description": "Healthy" }, "503": { "description": "Degraded" } } } },
+    "/api-docs.json": { "get": { "tags": ["Admin"], "summary": "OpenAPI specification", "security": [], "responses": { "200": { "description": "OpenAPI JSON" } } } },
+    "/api/auth/register": { "post": { "tags": ["Auth"], "summary": "Register a guest with privacy consent", "security": [], "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["name", "email", "address", "contact", "password"], "properties": { "name": { "type": "string" }, "email": { "type": "string" }, "address": { "type": "string" }, "contact": { "type": "string" }, "password": { "type": "string" }, "acceptPrivacyPolicy": { "type": "boolean" }, "acceptMarketing": { "type": "boolean" } } } } } }, "responses": { "201": { "description": "Registered" }, "409": { "description": "Email exists" } } } },
+    "/api/auth/login": { "post": { "tags": ["Auth"], "summary": "Login and receive access + refresh tokens", "security": [], "responses": { "200": { "description": "Logged in" }, "401": { "description": "Invalid credentials" } } } },
+    "/api/auth/refresh": { "post": { "tags": ["Auth"], "summary": "Rotate refresh token and get new access token", "security": [], "responses": { "200": { "description": "Refreshed" }, "401": { "description": "Invalid refresh token" } } } },
+    "/api/auth/logout": { "post": { "tags": ["Auth"], "summary": "Revoke access and refresh tokens", "responses": { "200": { "description": "Logged out" } } } },
+    "/api/auth/forgot-password": { "post": { "tags": ["Auth"], "summary": "Request password reset token by email", "security": [], "responses": { "200": { "description": "Token generated" } } } },
+    "/api/auth/reset-password": { "post": { "tags": ["Auth"], "summary": "Reset password with valid token", "security": [], "responses": { "200": { "description": "Password reset" }, "400": { "description": "Invalid token" } } } },
+    "/api/auth/me": { "get": { "tags": ["Auth"], "summary": "Current user profile", "responses": { "200": { "description": "Profile", "content": { "application/json": { "schema": { "type": "object", "properties": { "user": { "$ref": "#/components/schemas/User" } } } } } } } } },
+    "/api/auth/profile": { "put": { "tags": ["Auth"], "summary": "Update own profile", "responses": { "200": { "description": "Updated" } } } },
+    "/api/auth/change-password": { "put": { "tags": ["Auth"], "summary": "Change own password", "responses": { "200": { "description": "Changed" } } } },
+    "/api/users": {
+      "get": { "tags": ["Users"], "summary": "List users (admin)", "parameters": [{ "in": "query", "name": "role", "schema": { "type": "string" } }, { "in": "query", "name": "search", "schema": { "type": "string" } }], "responses": { "200": { "description": "Users" } } },
+      "post": { "tags": ["Users"], "summary": "Create staff account (admin)", "responses": { "201": { "description": "Created" } } }
+    },
+    "/api/users/guests": { "get": { "tags": ["Users"], "summary": "List guest profiles (admin)", "responses": { "200": { "description": "Guests" } } } },
+    "/api/users/{id}": {
+      "get": { "tags": ["Users"], "summary": "Get user by id", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "User" }, "404": { "description": "Not found" } } },
+      "put": { "tags": ["Users"], "summary": "Update user", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Updated" } } }
+    },
+    "/api/users/{id}/permissions": { "put": { "tags": ["Users"], "summary": "Set granular permissions", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Updated" } } } },
+    "/api/users/{id}/deactivate": { "patch": { "tags": ["Users"], "summary": "Deactivate account", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Deactivated" } } } },
+    "/api/users/{id}/activate": { "patch": { "tags": ["Users"], "summary": "Activate account", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Activated" } } } },
+    "/api/rooms": {
+      "get": { "tags": ["Rooms"], "summary": "List/filter rooms", "responses": { "200": { "description": "Rooms" } } },
+      "post": { "tags": ["Rooms"], "summary": "Create room", "responses": { "201": { "description": "Created" } } }
+    },
+    "/api/rooms/availability/search": { "get": { "tags": ["Rooms"], "summary": "Search available rooms for a date range", "parameters": [{ "in": "query", "name": "checkInDate", "required": true, "schema": { "type": "string", "format": "date" } }, { "in": "query", "name": "checkOutDate", "required": true, "schema": { "type": "string", "format": "date" } }, { "in": "query", "name": "type", "schema": { "type": "string" } }, { "in": "query", "name": "guests", "schema": { "type": "integer" } }], "responses": { "200": { "description": "Available rooms" } } } },
+    "/api/rooms/events": { "get": { "tags": ["Rooms"], "summary": "SSE stream of real-time room status updates", "responses": { "200": { "description": "text/event-stream" } } } },
+    "/api/rooms/stats": { "get": { "tags": ["Rooms"], "summary": "Room status statistics", "responses": { "200": { "description": "Stats" } } } },
+    "/api/rooms/{id}": {
+      "get": { "tags": ["Rooms"], "summary": "Get room", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Room" } } },
+      "put": { "tags": ["Rooms"], "summary": "Update room", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Updated" } } },
+      "delete": { "tags": ["Rooms"], "summary": "Deactivate room", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Deactivated" } } }
+    },
+    "/api/rooms/{id}/status": { "patch": { "tags": ["Rooms"], "summary": "Update room status (broadcasts real-time event)", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Updated" } } } },
+    "/api/bookings": {
+      "get": { "tags": ["Bookings"], "summary": "List bookings (own for guests)", "responses": { "200": { "description": "Bookings" } } },
+      "post": { "tags": ["Bookings"], "summary": "Create reservation with overlap protection", "responses": { "201": { "description": "Created" }, "409": { "description": "Room unavailable" } } }
+    },
+    "/api/bookings/{id}": {
+      "get": { "tags": ["Bookings"], "summary": "Get booking", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Booking" } } },
+      "put": { "tags": ["Bookings"], "summary": "Update booking", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Updated" } } }
+    },
+    "/api/bookings/{id}/cancel": { "patch": { "tags": ["Bookings"], "summary": "Cancel booking", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Cancelled" } } } },
+    "/api/bookings/{id}/check-in": { "patch": { "tags": ["Bookings"], "summary": "Check in and issue key card", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Checked in" } } } },
+    "/api/bookings/{id}/check-out": { "patch": { "tags": ["Bookings"], "summary": "Check out, return key, auto-bill and schedule cleaning", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Checked out" } } } },
+    "/api/invoices": {
+      "get": { "tags": ["Invoices"], "summary": "List invoices", "responses": { "200": { "description": "Invoices" } } },
+      "post": { "tags": ["Invoices"], "summary": "Create invoice with tax and service charges", "responses": { "201": { "description": "Created" } } }
+    },
+    "/api/invoices/{id}": { "get": { "tags": ["Invoices"], "summary": "Get invoice", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Invoice" } } } },
+    "/api/invoices/{id}/print": { "get": { "tags": ["Invoices"], "summary": "Printable invoice HTML", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "HTML invoice" } } } },
+    "/api/invoices/{id}/send-email": { "post": { "tags": ["Invoices"], "summary": "Email invoice via SMTP", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Delivery result" } } } },
+    "/api/invoices/{id}/charges": { "post": { "tags": ["Invoices"], "summary": "Add charge", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Updated" } } } },
+    "/api/invoices/{id}/payment": { "patch": { "tags": ["Invoices"], "summary": "Update payment status", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Updated" } } } },
+    "/api/housekeeping": {
+      "get": { "tags": ["Housekeeping"], "summary": "List cleaning tasks", "responses": { "200": { "description": "Tasks" } } },
+      "post": { "tags": ["Housekeeping"], "summary": "Schedule cleaning task", "responses": { "201": { "description": "Created" } } }
+    },
+    "/api/housekeeping/{id}": { "put": { "tags": ["Housekeeping"], "summary": "Update task (marks room available when completed)", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Updated" } } } },
+    "/api/maintenance": {
+      "get": { "tags": ["Maintenance"], "summary": "List maintenance requests", "responses": { "200": { "description": "Requests" } } },
+      "post": { "tags": ["Maintenance"], "summary": "Report maintenance issue", "responses": { "201": { "description": "Created" } } }
+    },
+    "/api/maintenance/{id}": { "put": { "tags": ["Maintenance"], "summary": "Update/track resolution", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Updated" } } } },
+    "/api/feedback": {
+      "get": { "tags": ["Feedback"], "summary": "List feedback", "responses": { "200": { "description": "Feedback" } } },
+      "post": { "tags": ["Feedback"], "summary": "Submit rating and feedback", "responses": { "201": { "description": "Created" } } }
+    },
+    "/api/feedback/{id}/reply": { "patch": { "tags": ["Feedback"], "summary": "Reply to feedback", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Replied" } } } },
+    "/api/service-requests": {
+      "get": { "tags": ["Services"], "summary": "List service requests", "responses": { "200": { "description": "Requests" } } },
+      "post": { "tags": ["Services"], "summary": "Request room service, wake-up call, transport, laundry", "responses": { "201": { "description": "Created" } } }
+    },
+    "/api/service-requests/{id}": { "put": { "tags": ["Services"], "summary": "Update request (bills completed services)", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Updated" } } } },
+    "/api/reports/dashboard": { "get": { "tags": ["Reports"], "summary": "Dashboard summary with date filters", "responses": { "200": { "description": "Summary" } } } },
+    "/api/reports/occupancy": { "get": { "tags": ["Reports"], "summary": "Occupancy report", "responses": { "200": { "description": "Report" } } } },
+    "/api/reports/occupancy/by-type": { "get": { "tags": ["Reports"], "summary": "Occupancy by room type", "responses": { "200": { "description": "Report" } } } },
+    "/api/reports/occupancy/export": { "get": { "tags": ["Reports"], "summary": "Export occupancy CSV", "responses": { "200": { "description": "CSV" } } } },
+    "/api/reports/revenue": { "get": { "tags": ["Reports"], "summary": "Monthly revenue report", "responses": { "200": { "description": "Report" } } } },
+    "/api/reports/revenue/by-service": { "get": { "tags": ["Reports"], "summary": "Revenue by service type", "responses": { "200": { "description": "Report" } } } },
+    "/api/reports/revenue/export": { "get": { "tags": ["Reports"], "summary": "Export revenue CSV", "responses": { "200": { "description": "CSV" } } } },
+    "/api/reports/feedback": { "get": { "tags": ["Reports"], "summary": "Feedback breakdown", "responses": { "200": { "description": "Report" } } } },
+    "/api/reports/feedback/export": { "get": { "tags": ["Reports"], "summary": "Export feedback CSV", "responses": { "200": { "description": "CSV" } } } },
+    "/api/reports/analytics/forecast": { "get": { "tags": ["Reports"], "summary": "Demand forecast (moving average)", "responses": { "200": { "description": "Forecast" } } } },
+    "/api/reports/analytics/pricing": { "get": { "tags": ["Reports"], "summary": "Pricing optimization insights", "responses": { "200": { "description": "Insights" } } } },
+    "/api/reports/custom": { "get": { "tags": ["Reports"], "summary": "Customizable report with CSV export", "parameters": [{ "in": "query", "name": "metric", "schema": { "type": "string", "enum": ["bookings", "revenue", "feedback"] } }, { "in": "query", "name": "groupBy", "schema": { "type": "string", "enum": ["month", "status", "category"] } }, { "in": "query", "name": "format", "schema": { "type": "string", "enum": ["json", "csv"] } }], "responses": { "200": { "description": "Report" } } } },
+    "/api/settings": {
+      "get": { "tags": ["Settings"], "summary": "List system settings", "responses": { "200": { "description": "Settings" } } },
+      "put": { "tags": ["Settings"], "summary": "Upsert setting (tax rates, policies, toggles)", "responses": { "200": { "description": "Saved" } } }
+    },
+    "/api/settings/{id}": { "delete": { "tags": ["Settings"], "summary": "Delete setting", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Deleted" } } } },
+    "/api/notifications": {
+      "get": { "tags": ["Notifications"], "summary": "My notifications", "responses": { "200": { "description": "Notifications" } } },
+      "post": { "tags": ["Notifications"], "summary": "Create notification (in-app + email)", "responses": { "201": { "description": "Created" } } }
+    },
+    "/api/notifications/preferences": {
+      "get": { "tags": ["Notifications"], "summary": "Get notification preferences", "responses": { "200": { "description": "Preferences" } } },
+      "put": { "tags": ["Notifications"], "summary": "Update notification preferences", "responses": { "200": { "description": "Updated" } } }
+    },
+    "/api/notifications/read-all": { "patch": { "tags": ["Notifications"], "summary": "Mark all as read", "responses": { "200": { "description": "Updated" } } } },
+    "/api/notifications/{id}/read": { "patch": { "tags": ["Notifications"], "summary": "Mark one as read", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Updated" } } } },
+    "/api/notifications/{id}": { "delete": { "tags": ["Notifications"], "summary": "Delete notification", "parameters": [{ "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Deleted" } } } },
+    "/api/audit-logs": { "get": { "tags": ["Audit"], "summary": " paginated audit trail", "parameters": [{ "in": "query", "name": "page", "schema": { "type": "integer" } }, { "in": "query", "name": "limit", "schema": { "type": "integer" } }], "responses": { "200": { "description": "Logs" } } } },
+    "/api/privacy/consent": {
+      "get": { "tags": ["Privacy"], "summary": "Get current consent state", "responses": { "200": { "description": "Consent" } } },
+      "put": { "tags": ["Privacy"], "summary": "Grant or withdraw consent", "responses": { "200": { "description": "Updated" } } }
+    },
+    "/api/privacy/export": { "get": { "tags": ["Privacy"], "summary": "Export all personal data (GDPR)", "responses": { "200": { "description": "JSON export" } } } },
+    "/api/privacy/me": { "delete": { "tags": ["Privacy"], "summary": "Anonymize and delete personal data", "responses": { "200": { "description": "Deleted" } } } },
+    "/api/admin/overview": { "get": { "tags": ["Admin"], "summary": "Admin dashboard overview", "responses": { "200": { "description": "Overview" } } } },
+    "/api/admin/metrics": { "get": { "tags": ["Admin"], "summary": "Runtime metrics", "responses": { "200": { "description": "Metrics" } } } },
+    "/api/admin/backup": { "post": { "tags": ["Admin"], "summary": "Trigger manual mongodump backup", "responses": { "200": { "description": "Backup result" }, "502": { "description": "Backup failed" } } } },
+    "/api/admin/health": { "get": { "tags": ["Admin"], "summary": "Detailed health (public)", "security": [], "responses": { "200": { "description": "Healthy" } } } }
+  }
+}
