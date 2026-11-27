@@ -40,7 +40,7 @@ app.use(
     crossOriginEmbedderPolicy: false,
   })
 );
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(enforceHttps);
 app.use(express.json({ limit: "1mb" }));
 app.use(requestLogger);
